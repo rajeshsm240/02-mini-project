@@ -25,8 +25,10 @@ import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.CMYKColor;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -128,78 +130,78 @@ public class CitizenPlanServiceImpl implements CitizenPlanService {
 	@Override
 	public void generatePdf(HttpServletResponse httpServletResponse) throws Exception {
 		
-		Document document = new Document();
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
- 
-        try {
- 
-            PdfWriter.getInstance(document, out);
-            document.open();
- 
-            // Add Content to PDF file ->
-            Font fontHeader = FontFactory.getFont(FontFactory.TIMES_BOLD, 22);
-            Paragraph para = new Paragraph("Citizen Plans", fontHeader);
-            para.setAlignment(Element.ALIGN_CENTER);
-            document.add(para);
-            document.add(Chunk.NEWLINE);
- 
-            PdfPTable table = new PdfPTable(6);
-            // Add PDF Table Header ->
-            Stream.of("Name", "Email", "Gender", "SSN", "Plan Name","Plan Status").forEach(headerTitle -> {
-                PdfPCell header = new PdfPCell();
-                Font headFont = FontFactory.getFont(FontFactory.TIMES_BOLD);
-                header.setBackgroundColor(Color.CYAN);
-                header.setHorizontalAlignment(Element.ALIGN_CENTER);
-                header.setBorderWidth(2);
-                header.setPhrase(new Phrase
-                		(headerTitle, headFont));
-                table.addCell(header);
-            });
- 
-            for (CitizenPlan citizen : citizenPlanRepository.findAll()) {
-                PdfPCell name = new PdfPCell(new Phrase(citizen.getName().toString()));
-                name.setPaddingLeft(4);
-                name.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                name.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(name);
- 
-                PdfPCell email = new PdfPCell(new Phrase(citizen.getEmail().toString()));
-                email.setPaddingLeft(4);
-                email.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                email.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(email);
- 
-                PdfPCell gender = new PdfPCell(new Phrase(String.valueOf(citizen.getGender().toString())));
-                gender.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                gender.setHorizontalAlignment(Element.ALIGN_CENTER);
-                gender.setPaddingRight(4);
-                table.addCell(gender);
- 
-                PdfPCell ssn = new PdfPCell(new Phrase(String.valueOf(citizen.getSsn()+"")));
-                ssn.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                ssn.setHorizontalAlignment(Element.ALIGN_CENTER);
-                ssn.setPaddingRight(4);
-                table.addCell(ssn);
- 
-                PdfPCell planName = new PdfPCell(new Phrase(String.valueOf(citizen.getPlanName().toString())));
-                planName.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                planName.setHorizontalAlignment(Element.ALIGN_CENTER);
-                planName.setPaddingRight(4);
-                table.addCell(planName);
-                
-                PdfPCell planStatus = new PdfPCell(new Phrase(String.valueOf(citizen.getPlanStatus().toString())));
-                planStatus.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                planStatus.setHorizontalAlignment(Element.ALIGN_CENTER);
-                planStatus.setPaddingRight(4);
-                table.addCell(planStatus);
-            }
-            document.add(table);
- 
-            document.close();
-        } catch (DocumentException e) {
-            e.printStackTrace();
+		Document document1 = new Document(PageSize.A4);     //browser
+		
+        ServletOutputStream outputStream = httpServletResponse.getOutputStream();
+        PdfWriter.getInstance(document1, outputStream);
+        document1.open();
+        
+        Document document2 = new Document(PageSize.A4);     //email-attachment
+        
+        File f = new File("data.pdf");
+        FileOutputStream fos  = new FileOutputStream(f);
+        PdfWriter.getInstance(document2, fos);
+        document2.open();
+        
+        Font fontHeader = FontFactory.getFont(FontFactory.TIMES_BOLD, 22);
+        fontHeader.setSize(20);
+        Paragraph p = new Paragraph("Citizens Plan Info",fontHeader);
+        p.setAlignment(Paragraph.ALIGN_CENTER);
+        
+        document1.add(p);
+        document2.add(p);
+        
+        PdfPTable table = new PdfPTable(6);
+        table.setWidthPercentage(100);
+        table.setWidths(new int[] {3,3,3,3,3,3});
+        table.setSpacingBefore(5);
+        
+        PdfPCell cell = new PdfPCell();
+        cell.setBackgroundColor(CMYKColor.BLUE);
+        cell.setPadding(5);
+        Font font = FontFactory.getFont(FontFactory.TIMES_BOLD, 22);
+        fontHeader.setColor(CMYKColor.WHITE);
+        
+        cell.setPhrase(new Phrase("Name",font));
+        table.addCell(cell);
+        
+        cell.setPhrase(new Phrase("Email",font));
+        table.addCell(cell);
+        
+        cell.setPhrase(new Phrase("Gender",font));
+        table.addCell(cell);
+        
+        cell.setPhrase(new Phrase("SSN",font));
+        table.addCell(cell);
+        
+        cell.setPhrase(new Phrase("Plan Name",font));
+        table.addCell(cell);
+        
+        cell.setPhrase(new Phrase("Plan Status",font));
+        table.addCell(cell);
+        
+        List<CitizenPlan> citizenPlans = citizenPlanRepository.findAll();
+        
+        for(CitizenPlan citizenPlan : citizenPlans) {
+        	table.addCell(citizenPlan.getName());
+        	table.addCell(citizenPlan.getEmail());
+        	table.addCell(citizenPlan.getGender());
+        	table.addCell(String.valueOf(citizenPlan.getSsn()));
+        	table.addCell(citizenPlan.getPlanName());
+        	table.addCell(citizenPlan.getPlanStatus());
         }
-
+        
+        document1.add(table);
+        document2.add(table);
+        
+        document1.close();
+        outputStream.close();
+        
+        document2.close();
+        fos.close();
+        
+        email.sendMail(f);
+       
        
 	}
 
