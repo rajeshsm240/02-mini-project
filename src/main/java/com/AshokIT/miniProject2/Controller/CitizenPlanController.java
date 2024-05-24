@@ -49,10 +49,10 @@ public class CitizenPlanController {
 	
 	
 	@PostMapping("/search")
-	public String handleSearchButton(@ModelAttribute("search") SearchCriteria criteria) {
+	public String handleSearchButton(@ModelAttribute("search") SearchCriteria criteria,Model model) {
 		
-		System.out.println(criteria);
-		
+		List<CitizenPlan> citizenPlanList = citizenPlanService.getCitizens(criteria);
+		model.addAttribute("search", citizenPlanList);
 		return "index";
 	}
 	
